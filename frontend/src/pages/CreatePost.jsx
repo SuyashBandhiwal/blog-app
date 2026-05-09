@@ -10,7 +10,7 @@ function CreatePost() {
   const handleCreate = async () => {
     const token = localStorage.getItem('token')
     await axios.post(
-      'https://blog-app-backend-ndv9.onrender.com/api/auth/login',
+       'https://blog-app-backend-ndv9.onrender.com/api/posts',
       { title, content,author: 'Suyash' },
       { headers: { Authorization: token } }
     )
