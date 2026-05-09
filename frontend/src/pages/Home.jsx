@@ -7,7 +7,7 @@ function Home() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    axios.get('http://localhost:5000/api/posts')
+    axios.get('https://blog-app-backend-ndv9.onrender.com/api/auth/login')
       .then(response => setPosts(response.data))
   }, [])
 
