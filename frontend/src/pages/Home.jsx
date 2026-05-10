@@ -7,7 +7,7 @@ function Home() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    axios.get('https://blog-app-backend-ndv9.onrender.com/api/auth/login')
+    axios.get('https://blog-app-backend-ndv9.onrender.com/api/posts')
       .then(response => setPosts(response.data))
   }, [])
 
@@ -22,7 +22,6 @@ function Home() {
           + New Post
         </button>
       </nav>
-
       <div className="max-w-3xl mx-auto py-8 px-4">
         {posts.map(post => (
           <div key={post._id} className="bg-white rounded-xl shadow-sm p-6 mb-4 border border-gray-100">

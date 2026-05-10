@@ -2,51 +2,33 @@ import { useState } from 'react'
 import axios from 'axios'
 import { useNavigate } from 'react-router-dom'
 
-function CreatePost() {
-  const [title, setTitle] = useState('')
-  const [content, setContent] = useState('')
+function Register() {
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const navigate = useNavigate()
 
-  const handleCreate = async () => {
-    const token = localStorage.getItem('token')
-
-    await axios.post(
-      'https://blog-app-backend-ndv9.onrender.com/api/auth/login',
-      {
-        title,
-        content
-      },
-      {
-        headers: {
-          Authorization: token
-        }
-      }
-    )
-
-    navigate('/')
+  const handleRegister = async () => {
+    await axios.post('https://blog-app-backend-ndv9.onrender.com/api/auth/register', {
+      name,
+      email,
+      password
+    })
+    navigate('/login')
   }
 
   return (
     <div>
-      <h2>Create Post</h2>
-
-      <input
-        type="text"
-        placeholder="Title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-      />
-
-      <input
-        type="text"
-        placeholder="Content"
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-      />
-
-      <button onClick={handleCreate}>Create Post</button>
+      <h2>Register</h2>
+      <input type="text" placeholder="Name"
+        value={name} onChange={(e) => setName(e.target.value)} />
+      <input type="email" placeholder="Email"
+        value={email} onChange={(e) => setEmail(e.target.value)} />
+      <input type="password" placeholder="Password"
+        value={password} onChange={(e) => setPassword(e.target.value)} />
+      <button onClick={handleRegister}>Register</button>
     </div>
   )
 }
 
-export default CreatePost
+export default Register
