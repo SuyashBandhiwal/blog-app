@@ -9,7 +9,7 @@ function Register() {
   const navigate = useNavigate()
 
   const handleRegister = async () => {
-    await axios.post('https://blog-app-backend-ndv9.onrender.com/api/auth/register', {
+    await axios.post('http://localhost:5000/api/auth/register', {
       name,
       email,
       password
