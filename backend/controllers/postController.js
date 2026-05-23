@@ -16,8 +16,8 @@ const getAllPosts = async (req, res) => {
 const updatePost = async (req, res) => {
   // Specific post ko ID se dhundkar update karta hai
   const post = await Post.findByIdAndUpdate(
-    // URL se ID leta hai - URL:/api/posts/123 - 123 = req.params.id
-    req.params.id,
+    // URL se ID leta hai - URL:/api/posts/123 ( 123 = req.params.id )
+    req.params.id, 
     // Updated data leta hai
     req.body,
     // Updated wala latest document return karta hai

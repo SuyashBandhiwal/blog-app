@@ -45,7 +45,7 @@ function CreatePost() {
   return (
     <div>
       <h2>Create Post</h2>
-       // Text input field banata hai 
+       {/* Text input field banata hai */}
       <input type="text" placeholder="Title"
       // value={title} - Input ki current value ko React state se connect karta hai
       // onChange={(e) => setTitle(e.target.value)} - User jo type kare usse state update karta hai
