@@ -3,7 +3,7 @@
 // Model = Database ka structure → data kaisa dikhega
 // Middleware = Security/checkpoint → request ko check karta hai
 
-// dotenv ek package hai jo .env file ko read karta hai like-MONGO_URI=abcd
+// dotenv ek package hai jo .env file ko read karta hai like- MONGO_URI = abcd 
 const dotenv = require('dotenv')
 // .env ke andar jo variables likhe hote hain unko Node.js application me use karne deta hai
 dotenv.config()
@@ -15,6 +15,8 @@ const mongoose = require('mongoose')
 const authRoutes = require('./routes/authRoutes')
 // postRoutes - blog posts ke liye URLs (create, read, update, delete)
 const postRoutes = require('./routes/postRoutes')
+// helloRoutes - sample Hello World API URLs
+const helloRoutes = require('./routes/helloRoutes')
 // cors - frontend aur backend ke beech data exchange karne deta hai
 const cors = require('cors')
 // Ye Express ka app object banata hai jisse backend server banaya jata hai.
@@ -32,6 +34,8 @@ mongoose.connect(process.env.MONGO_URI)
   app.use('/api/auth', authRoutes)
 // /api/posts/create - posts section me create post karo.
   app.use('/api/posts', postRoutes)
+// /api/hello - sample Hello World API
+  app.use('/api/hello', helloRoutes)
 
 app.get('/', (req, res) => {
   res.send('Blog API Running')
