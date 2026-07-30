@@ -1,12 +1,24 @@
 const express = require('express')
-//Ye ek mini route manager banata hai
+const rateLimit = require('express-rate-limit')
 const router = express.Router()
-// authController file se:register function, login function import karta hai
-const { register , login } = require('../controllers/authController')
-// Route bas request receive karta hai, Actual kaam controller karta hai 
-// POST request aane par register function chalata hai
-router.post('/register', register)
-// Agar request aaye: /api/auth/login - login function chalega
-router.post('/login', login)
-// Ye router ko export karta hai taaki dusri file me use kar sake
+const { register, login, logout, getMe } = require('../controllers/authController')
+const { registerRules, loginRules } = require('../validators/authValidators')
+const { protect } = require('../middleware/authMiddleware')
+
+// Naya (v2): brute-force login attempts se bachne ke liye rate limiter.
+// 10 minute me sirf 10 attempts allow, uske baad 429 (Too Many Requests) milega
+const authLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  limit: 10,
+  message: { message: 'Too many attempts, please try again after some time' },
+  standardHeaders: true,
+  legacyHeaders: false
+})
+
+router.post('/register', authLimiter, registerRules, register)
+router.post('/login', authLimiter, loginRules, login)
+router.post('/logout', logout)
+// /me - current logged-in user check karne ke liye (protect middleware pehle chalega)
+router.get('/me', protect, getMe)
+
 module.exports = router

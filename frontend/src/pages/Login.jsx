@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import axios from 'axios'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 function Login() {
   const [email, setEmail] = useState('')
@@ -8,13 +8,13 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
+  const { login } = useAuth() // UPGRADE (v2): AuthContext ke through login, axios/localStorage seedha nahi
 
   const handleLogin = async (e) => {
     e.preventDefault()
     setIsLoading(true)
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', { email, password })
-      localStorage.setItem('token', response.data.token)
+      await login(email, password)
       navigate('/')
     } catch (error) {
       console.error(error)
@@ -37,11 +37,11 @@ function Login() {
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1">Email Address</label>
-            <input 
-              type="email" 
+            <input
+              type="email"
               placeholder="developer@syntax.io"
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-2.5 bg-[#0f172a] border border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-200 placeholder-slate-600"
               required
             />
@@ -50,11 +50,11 @@ function Login() {
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1">Password</label>
             <div className="relative">
-              <input 
-                type={showPassword ? "text" : "password"} 
+              <input
+                type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-2.5 bg-[#0f172a] border border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-200 placeholder-slate-600"
                 required
               />
@@ -68,8 +68,8 @@ function Login() {
             </div>
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={isLoading}
             className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl transition-all shadow-md shadow-blue-600/10 mt-2 disabled:opacity-50"
           >

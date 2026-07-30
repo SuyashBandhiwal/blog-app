@@ -1,35 +1,47 @@
 // JWT package import karta hai
 // JWT = JSON Web Token (Ye ek secret identity card hota hai)
 const jwt = require('jsonwebtoken')
+const User = require('../models/User')
+const asyncHandler = require('../utils/asyncHandler')
 
 // Ye middleware function hai -Request ko controller tak jane se pehle check karta hai
-const protect = (req, res, next) => {
-  // Request ke headers se token nikalta hai
-  const token = req.headers.authorization
+// UPGRADE (v2): token ab localStorage/header ki jagah httpOnly cookie se aata hai.
+// Cookie me se token nikalna XSS-safe hai kyuki JS (client-side) cookie ko read nahi kar sakti.
+const protect = asyncHandler(async (req, res, next) => {
+  // Pehle httpOnly cookie check karo (naya, secure tareeka)
+  let token = req.cookies?.token
+
+  // Backward-compatible fallback: agar koi purane Authorization header se bhej raha hai
+  if (!token && req.headers.authorization?.startsWith('Bearer ')) {
+    token = req.headers.authorization.split(' ')[1]
+  }
 
   // !token - token nahi hai
   // 401 - Unauthorized user (Pehle login karo)
-  // Agar ye IF condition hata di -bina login wala banda bhi protected routes access kar sakta hai
   if (!token) {
     return res.status(401).json({
-      message: 'No token provided'
+      message: 'Not authorized, no token'
     })
   }
-  // Token ko verify karta hai -token asli hai ya fake ,secret key sahi hai ya nahi
-  // JWT_SECRET - Backend ki secret key (ex- JWT_SECRET=mysecretkey)
-  const decoded = jwt.verify(
-    token,
-    process.env.JWT_SECRET
-  )
-//  Agar token valid hua, to user data mil jayega - decoded
-//   {
-//   id: "123",
-//   email: "abc@gmail.com"
-// }
-//  req.user = decoded -User ki information request ke andar store karta hai
-// next() - Next middleware/controller ko call karta hai("Sab check ho gaya, ab andar jao.")
-  req.user = decoded
-  next()
-}
+
+  try {
+    // Token ko verify karta hai -token asli hai ya fake, secret key sahi hai ya nahi
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+
+    // Sirf token ka data trust karne ki jagah, DB se fresh user nikalte hain
+    // (password field ko explicitly exclude kiya - kabhi bhi client ko nahi jana chahiye)
+    const user = await User.findById(decoded.id).select('-password')
+    if (!user) {
+      return res.status(401).json({ message: 'Not authorized, user not found' })
+    }
+
+    // req.user me poora user object (minus password) store - controllers isse use karenge
+    req.user = user
+    next()
+  } catch (err) {
+    // Token expired ya tampered hua
+    return res.status(401).json({ message: 'Not authorized, token failed' })
+  }
+})
 
 module.exports = { protect }

@@ -1,27 +1,56 @@
-import { useState, useEffect } from 'react'
-import axios from 'axios'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import api from '../api/axios'
+import { useAuth } from '../context/AuthContext'
+import PostCard from '../components/PostCard'
 
 function Home() {
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [search, setSearch] = useState('')
   const navigate = useNavigate()
+  const { user, logout } = useAuth() // UPGRADE (v2): localStorage ki jagah AuthContext
 
-  useEffect(() => {
-    axios.get('http://localhost:5000/api/posts')
-      .then(response => {
-        setPosts(response.data)
-        setLoading(false)
+  const fetchPosts = useCallback(async (pageNum, searchTerm, append = false) => {
+    append ? setLoadingMore(true) : setLoading(true)
+    try {
+      // UPGRADE (v2): hardcoded 'http://localhost:5000' hataya - api instance env se URL leta hai.
+      // Pagination + search bhi ab support hai.
+      const { data } = await api.get('/api/posts', {
+        params: { page: pageNum, limit: 5, search: searchTerm || undefined }
       })
-      .catch(err => {
-        console.error(err)
-        setLoading(false)
-      })
+      setPosts((prev) => (append ? [...prev, ...data.posts] : data.posts))
+      setTotalPages(data.totalPages)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+      setLoadingMore(false)
+    }
   }, [])
 
-  const handleLogout = () => {
-    localStorage.removeItem('token')
+  useEffect(() => {
+    fetchPosts(1, search)
+    setPage(1)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search])
+
+  const handleLoadMore = () => {
+    const nextPage = page + 1
+    setPage(nextPage)
+    fetchPosts(nextPage, search, true)
+  }
+
+  const handleLogout = async () => {
+    await logout()
     navigate('/login')
+  }
+
+  const handlePostDeleted = (id) => {
+    setPosts((prev) => prev.filter((p) => p._id !== id))
   }
 
   return (
@@ -33,15 +62,21 @@ function Home() {
             Syntax<span className="text-slate-100 bg-blue-500/25 border border-blue-500/40 px-2 py-0.5 rounded-lg text-sm font-semibold ml-1.5 shadow-sm">Share</span>
           </h1>
           <div className="flex items-center gap-4">
-            {localStorage.getItem('token') ? (
+            {user ? (
               <>
+                <button
+                  onClick={() => navigate(`/profile/${user.id}`)}
+                  className="text-sm text-slate-400 hover:text-blue-400 transition-colors"
+                >
+                  @{user.name}
+                </button>
                 <button
                   onClick={() => navigate('/create')}
                   className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-md shadow-blue-500/20"
                 >
                   + New Post
                 </button>
-                <button 
+                <button
                   onClick={handleLogout}
                   className="text-sm text-slate-400 hover:text-red-400 transition-colors"
                 >
@@ -62,6 +97,17 @@ function Home() {
 
       {/* Main Feed */}
       <div className="max-w-3xl mx-auto py-10 px-4">
+        {/* Naya (v2): Search bar */}
+        <div className="mb-6">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search posts by title or content..."
+            className="w-full px-4 py-2.5 bg-[#1e293b]/60 border border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-200 placeholder-slate-500"
+          />
+        </div>
+
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 space-y-3">
             <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -73,31 +119,26 @@ function Home() {
             <button onClick={() => navigate('/create')} className="text-blue-400 font-medium hover:underline">Write code &rarr;</button>
           </div>
         ) : (
-          <div className="space-y-6">
-            {posts.map(post => (
-              <article key={post._id} className="bg-[#1e293b]/40 rounded-2xl p-6 border border-slate-800/80 hover:border-slate-700 transition-all duration-300 shadow-sm hover:shadow-md hover:bg-[#1e293b]/60">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold uppercase shadow-inner">
-                    {post.author ? post.author[0] : 'U'}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-200">@{post.author || 'anonymous'}</p>
-                    <p className="text-xs text-slate-500">Just now</p>
-                  </div>
-                </div>
-                
-                <h2 className="text-xl font-bold text-slate-100 mb-2 leading-snug hover:text-blue-400 transition-colors cursor-pointer">
-                  {post.title}
-                </h2>
-                <p className="text-slate-400 leading-relaxed whitespace-pre-line text-[15px]">{post.content}</p>
-                
-                <div className="mt-5 pt-4 border-t border-slate-800/60 flex items-center justify-between text-xs text-slate-500">
-                  <span className="bg-slate-800/80 text-blue-400 border border-slate-700 px-2.5 py-1 rounded-md font-mono">console.log()</span>
-                  <span>MERN Stack</span>
-                </div>
-              </article>
-            ))}
-          </div>
+          <>
+            <div className="space-y-6">
+              {posts.map((post) => (
+                <PostCard key={post._id} post={post} onDeleted={handlePostDeleted} />
+              ))}
+            </div>
+
+            {/* Naya (v2): pagination - "Load more" button jab tak next page bache hain */}
+            {page < totalPages && (
+              <div className="flex justify-center mt-8">
+                <button
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="px-5 py-2.5 bg-[#1e293b] border border-slate-700 hover:border-blue-500 rounded-xl text-sm font-medium transition-all disabled:opacity-50"
+                >
+                  {loadingMore ? 'Loading...' : 'Load More'}
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

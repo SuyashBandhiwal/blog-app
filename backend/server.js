@@ -3,44 +3,61 @@
 // Model = Database ka structure → data kaisa dikhega
 // Middleware = Security/checkpoint → request ko check karta hai
 
-// dotenv ek package hai jo .env file ko read karta hai like- MONGO_URI = abcd 
+const path = require('path')
 const dotenv = require('dotenv')
-// .env ke andar jo variables likhe hote hain unko Node.js application me use karne deta hai
 dotenv.config()
-// express - server banane ke liye (express ko import kar liya)
-const express = require('express')
-// mongoose - database (MongoDB) se baat karne ke liye (mongo ko import kar liya)
-const mongoose = require('mongoose')
-// authRoutes - login aur register ke liye URLs
-const authRoutes = require('./routes/authRoutes')
-// postRoutes - blog posts ke liye URLs (create, read, update, delete)
-const postRoutes = require('./routes/postRoutes')
-// helloRoutes - sample Hello World API URLs
-const helloRoutes = require('./routes/helloRoutes')
-// cors - frontend aur backend ke beech data exchange karne deta hai
-const cors = require('cors')
-// Ye Express ka app object banata hai jisse backend server banaya jata hai.
-const app = express()
-// CORS on kiya - taaki frontend se request aasake
-app.use(cors())
-// json - data ko readable formate me convert kar deta h
-app.use(express.json())
 
-// .env file me stored MongoDB URL ka use karke database se connect karta hai.
+const express = require('express')
+const mongoose = require('mongoose')
+const cors = require('cors')
+const helmet = require('helmet')            // security headers (v2)
+const cookieParser = require('cookie-parser') // httpOnly cookie parse karne ke liye (v2)
+
+const authRoutes = require('./routes/authRoutes')
+const postRoutes = require('./routes/postRoutes')
+const commentRoutes = require('./routes/commentRoutes') // naya (v2)
+const helloRoutes = require('./routes/helloRoutes')
+const { notFound, errorHandler } = require('./middleware/errorMiddleware') // naya (v2)
+
+const app = express()
+
+// helmet - common security headers set karta hai (XSS, clickjacking, sniffing se basic protection)
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}))
+
+// UPGRADE (v2): CORS ab sirf apne frontend ke origin ko allow karta hai (pehle `*` tha - koi bhi
+// website request bhej sakti thi). `credentials: true` zaroori hai taaki httpOnly cookie
+// cross-origin request ke saath bhi bhej/receive ki ja sake.
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true
+}))
+
+app.use(express.json())
+app.use(cookieParser()) // req.cookies available karwata hai (authMiddleware isse token padhta hai)
+
+// Uploaded images ko publicly serve karta hai: http://localhost:5000/uploads/<filename>
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
+
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB Connected'))
   .catch((err) => console.log(err))
-// api/auth/register - Backend API ke authentication section me jao aur register wala kaam karo
-  app.use('/api/auth', authRoutes)
-// /api/posts/create - posts section me create post karo.
-  app.use('/api/posts', postRoutes)
-// /api/hello - sample Hello World API
-  app.use('/api/hello', helloRoutes)
+
+app.use('/api/auth', authRoutes)
+app.use('/api/posts', postRoutes)
+app.use('/api/posts', commentRoutes) // /api/posts/:postId/comments
+app.use('/api/hello', helloRoutes)
 
 app.get('/', (req, res) => {
   res.send('Blog API Running')
 })
 
-app.listen(5000, () => {
-  console.log('Server running')
+// UPGRADE (v2): centralized error handling - ye do middleware HAMESHA sabse aakhri me aane chahiye
+app.use(notFound)
+app.use(errorHandler)
+
+const PORT = process.env.PORT || 5000
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`)
 })

@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import axios from 'axios'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 function Register() {
   const [name, setName] = useState('')
@@ -8,14 +8,16 @@ function Register() {
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
+  const { register } = useAuth() // UPGRADE (v2): AuthContext ke through
 
   const handleRegister = async (e) => {
     e.preventDefault()
     setIsLoading(true)
     try {
-      await axios.post('http://localhost:5000/api/auth/register', { name, email, password })
-      alert('Registration successful! Access granted.')
-      navigate('/login')
+      await register(name, email, password)
+      // register successful hote hi cookie set ho chuki hai (backend login bhi kar deta hai),
+      // isliye seedha login page pe bhejne ki jagah home pe bhej sakte hain
+      navigate('/')
     } catch (error) {
       console.error(error)
       alert(error.response?.data?.message || 'Registration failed')
@@ -37,11 +39,11 @@ function Register() {
         <form onSubmit={handleRegister} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1">Full Name</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="e.g., John Doe"
-              value={name} 
-              onChange={(e) => setName(e.target.value)} 
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               className="w-full px-4 py-2.5 bg-[#0f172a] border border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-200 placeholder-slate-600"
               required
             />
@@ -49,11 +51,11 @@ function Register() {
 
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1">Email Address</label>
-            <input 
-              type="email" 
+            <input
+              type="email"
               placeholder="developer@syntax.io"
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-2.5 bg-[#0f172a] border border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-200 placeholder-slate-600"
               required
             />
@@ -61,18 +63,19 @@ function Register() {
 
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1">Password</label>
-            <input 
-              type="password" 
+            <input
+              type="password"
               placeholder="Min. 6 characters"
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              minLength={6}
               className="w-full px-4 py-2.5 bg-[#0f172a] border border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-200 placeholder-slate-600"
               required
             />
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={isLoading}
             className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl transition-all shadow-md shadow-blue-600/10 mt-2 disabled:opacity-50"
           >

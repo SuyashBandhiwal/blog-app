@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import axios from 'axios'
 import { useNavigate } from 'react-router-dom'
+import api from '../api/axios'
 
 function CreatePost() {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
+  const [image, setImage] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
 
@@ -14,12 +15,17 @@ function CreatePost() {
 
     setIsLoading(true)
     try {
-      const token = localStorage.getItem('token')
-      await axios.post(
-        'http://localhost:5000/api/posts',
-        { title, content, author: 'Suyash' },
-        { headers: { Authorization: token } }
-      )
+      // UPGRADE (v2): author hardcoded 'Suyash' hata diya - backend ab
+      // logged-in user ki ID token/cookie se khud nikalta hai.
+      // FormData use kiya kyunki image bhi bhejni ho sakti hai (multipart/form-data)
+      const formData = new FormData()
+      formData.append('title', title)
+      formData.append('content', content)
+      if (image) formData.append('image', image)
+
+      await api.post('/api/posts', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
       navigate('/')
     } catch (error) {
       console.error(error)
@@ -42,10 +48,10 @@ function CreatePost() {
         <form onSubmit={handleCreate} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1">Post Title</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="e.g., Mastering the MERN Stack API"
-              value={title} 
+              value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full px-4 py-2.5 bg-[#0f172a] border border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-200 placeholder-slate-500"
             />
@@ -56,24 +62,35 @@ function CreatePost() {
               <label className="block text-sm font-medium text-slate-300">Content</label>
               <span className="text-xs text-slate-500 bg-slate-800 px-2 py-0.5 rounded">{content.length} chars</span>
             </div>
-            <textarea 
+            <textarea
               rows="6"
               placeholder="Write your markdown or text here..."
-              value={content} 
+              value={content}
               onChange={(e) => setContent(e.target.value)}
               className="w-full px-4 py-2.5 bg-[#0f172a] border border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-slate-200 placeholder-slate-500 resize-none"
             />
           </div>
 
+          {/* Naya (v2): optional cover image upload */}
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1">Cover Image (optional)</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setImage(e.target.files[0])}
+              className="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-blue-600 file:text-white file:font-medium hover:file:bg-blue-500 file:cursor-pointer cursor-pointer"
+            />
+          </div>
+
           <div className="flex gap-3 justify-end pt-2">
-            <button 
+            <button
               type="button"
               onClick={() => navigate('/')}
               className="px-5 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800 font-medium transition-colors text-sm"
             >
               Cancel
             </button>
-            <button 
+            <button
               type="submit"
               disabled={isLoading}
               className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-medium shadow-lg shadow-blue-500/20 transition-all text-sm disabled:opacity-50"
